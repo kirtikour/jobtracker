@@ -1,68 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Typography, message, Checkbox, Divider } from 'antd';
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
 const { Title } = Typography;
 
 const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Replace with your Google OAuth client ID
-
-const jobImage = 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80'; // Example job-related image
+const jobImage =
+  'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80';
 
 const AuthPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fade, setFade] = useState(false);
+  const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
 
-  // Handle Google login/signup
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
     try {
-      // Send credentialResponse.credential to your backend for verification
-      message.success('Google sign-in successful! (Backend logic needed)');
+      // Here you would typically decode the JWT and create a user session
+      message.success('Google sign-in successful!');
+      // For now, we'll use mock login
+      const result = await login('google@example.com', 'password');
+      if (result.success) {
+        navigate('/dashboard');
+      }
     } catch (err) {
       message.error('Google sign-in failed');
     }
     setLoading(false);
   };
 
-  // Handle form submit
   const onFinish = async (values) => {
     setLoading(true);
     try {
       if (isSignup) {
-        // Signup logic
-        const res = await fetch('/api/auth/register', {
+        // Handle signup
+        const url = 'http://localhost:5000/api/auth/register';
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values),
         });
+        
         const data = await res.json();
+        
         if (res.ok) {
-          message.success('Signup successful!');
+          message.success('Signup successful! Please login.');
+          setIsSignup(false);
         } else {
-          message.error(data.msg || 'Signup failed');
+          message.error(data.msg + 'Signup failed');
         }
       } else {
-        // Login logic
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
-        });
-        const data = await res.json();
-        if (res.ok) {
+        // Handle login
+        const result = await login(values.email, values.password);
+        if (result.success) {
           message.success('Login successful!');
+          navigate('/dashboard');
         } else {
-          message.error(data.msg || 'Login failed');
+          message.error(result.error + 'Login failed');
         }
       }
     } catch (err) {
       message.error('Something went wrong');
+      console.error('Auth error:', err);
     }
     setLoading(false);
   };
 
-  // Handle toggle with fade/slide effect
   const handleToggle = () => {
     setFade(true);
     setTimeout(() => {
@@ -82,88 +96,101 @@ const AuthPage = () => {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
+          padding: '20px',
         }}
       >
         <div
           className="auth-book-container"
           style={{
-            width: '900px',
+            width: isSignup ? '600px' : '900px',
             maxWidth: '100vw',
+            height: 'auto',
             minHeight: 520,
-            maxHeight: 700,
-            margin: '48px 0',
+            maxHeight: 650,
+            margin: '40px 0',
             borderRadius: 24,
             boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
             background: '#fff',
             display: 'flex',
+            flexDirection: isSignup ? 'column' : 'row',
             overflow: 'hidden',
             position: 'relative',
-            flexDirection: 'row',
             boxSizing: 'border-box',
-            height: '70vh',
-            minHeight: 0,
           }}
         >
-          {/* Left: Image and caption (always visible) */}
-          <div
-            className="auth-book-image"
-            style={{
-              flex: '0 0 50%',
-              minWidth: 0,
-              height: '100%',
-              background: `url(${jobImage}) center/cover no-repeat`,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              padding: 36,
-              color: '#fff',
-              position: 'relative',
-              boxSizing: 'border-box',
-              minHeight: 0,
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 28, letterSpacing: 2, marginBottom: 16, textShadow: '0 2px 8px #000' }}>JobFinder</div>
-            <div style={{ flex: 1 }} />
-            <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 12, textShadow: '0 2px 8px #000' }}>
-              Find your dream job, track your applications, and get hired!
+          {!isSignup && (
+            <div
+              className="auth-book-image"
+              style={{
+                flex: '0 0 50%',
+                background: `url(${jobImage}) center/cover no-repeat`,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                padding: 36,
+                color: '#fff',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 28,
+                  letterSpacing: 2,
+                  marginBottom: 16,
+                  textShadow: '0 2px 8px #000',
+                }}
+              >
+                Finder
+              </div>
+              <div style={{ flex: 1 }} />
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 500,
+                  marginBottom: 12,
+                  textShadow: '0 2px 8px #000',
+                }}
+              >
+                Find your dream job, track your applications, and get hired!
+              </div>
+              <div
+                style={{
+                  opacity: 0.8,
+                  fontSize: 15,
+                  textShadow: '0 1px 4px #000',
+                }}
+              >
+                Empowering your career journey.
+              </div>
             </div>
-            <div style={{ opacity: 0.8, fontSize: 15, textShadow: '0 1px 4px #000' }}>Empowering your career journey.</div>
-          </div>
+          )}
 
-          {/* Right: Single form panel with fade/slide transition */}
+          {/* Form Section */}
           <div
             className="auth-book-form-panel"
             style={{
-              flex: '0 0 50%',
-              minWidth: 0,
+              flex: 1,
               height: '100%',
-              background: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
-              overflowY: 'auto',
-              overflowX: 'hidden',
+              overflow: 'hidden',
+              padding: '30px 20px',
               boxSizing: 'border-box',
-              borderLeft: '1.5px solid #ececec',
-              boxShadow: '-8px 0 24px -12px #ececec',
-              minHeight: 0,
             }}
           >
             <div
               style={{
                 width: '100%',
-                maxWidth: 340,
+                maxWidth: 400,
                 margin: '0 auto',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                padding: '0 32px',
-                boxSizing: 'border-box',
-                minHeight: 0,
-                minHeight: 400,
                 opacity: fade ? 0 : 1,
                 transform: fade ? (isSignup ? 'translateX(40px)' : 'translateX(-40px)') : 'translateX(0)',
                 transition: 'opacity 0.3s, transform 0.3s',
@@ -171,107 +198,160 @@ const AuthPage = () => {
             >
               {isSignup ? (
                 <>
-                  <Title level={2} style={{ color: '#222', marginBottom: 8, fontWeight: 700, fontSize: 32, textAlign: 'left' }}>
+                  <Title level={2} style={{ color: '#222', marginBottom: 8, fontWeight: 700, fontSize: 32 }}>
                     Create an account
                   </Title>
-                  <div style={{ color: '#888', marginBottom: 24, textAlign: 'left' }}>
+                  <div style={{ color: '#888', marginBottom: 16 }}>
                     Already have an account?{' '}
-                    <Button type="link" style={{ padding: 0, color: '#7c5cff' }} onClick={handleToggle}>
-                      Log in
+                    <Button
+                      type="link"
+                      style={{
+                        padding: 0,
+                        color: '#7c5cff',
+                        boxShadow: 'none',
+                        border: 'none',
+                        background: 'none',
+                        textDecoration: 'none',
+                      }}
+                      onClick={handleToggle}
+                    >
+                      Sign in
                     </Button>
-                  </div>
-                  <Form layout="vertical" style={{ width: '100%' }} onFinish={onFinish}>
-                    <Form.Item name="name" label={<span style={{ color: '#222' }}>Name</span>} rules={[{ required: true, message: 'Please enter your name' }]}> 
-                      <Input placeholder="Your Name" style={{ background: '#f6f7fb', color: '#222', border: '1px solid #ddd' }} />
-                    </Form.Item>
-                    <Form.Item name="email" label={<span style={{ color: '#222' }}>Email</span>} rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}> 
-                      <Input placeholder="you@example.com" style={{ background: '#f6f7fb', color: '#222', border: '1px solid #ddd' }} />
-                    </Form.Item>
-                    <Form.Item name="password" label={<span style={{ color: '#222' }}>Password</span>} rules={[{ required: true, message: 'Please enter your password' }]}> 
-                      <Input.Password placeholder="Password" style={{ background: '#f6f7fb', color: '#222', border: '1px solid #ddd' }} />
-                    </Form.Item>
-                    <Form.Item name="terms" valuePropName="checked" rules={[{ required: true, message: 'You must agree to the terms' }]} style={{ marginBottom: 8 }}>
-                      <Checkbox style={{ color: '#222' }}>
-                        I agree to the <a href="#" style={{ color: '#7c5cff' }}>Terms & Conditions</a>
-                      </Checkbox>
-                    </Form.Item>
-                    <Form.Item style={{ marginBottom: 0 }}>
-                      <Button type="primary" htmlType="submit" block loading={loading} style={{ background: '#7c5cff', border: 'none', fontWeight: 600, fontSize: 16, height: 44 }}>
-                        Create account
-                      </Button>
-                    </Form.Item>
-                  </Form>
-                  <Divider style={{ color: '#888', borderColor: '#eee', margin: '24px 0 16px 0' }}>Or register with</Divider>
-                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => message.error('Google sign-in failed')} width="100%" />
                   </div>
                 </>
               ) : (
                 <>
-                  <Title level={2} style={{ color: '#222', marginBottom: 8, fontWeight: 700, fontSize: 32, textAlign: 'left' }}>
-                    Sign in to your account
+                  <Title level={2} style={{ color: '#222', marginBottom: 8, fontWeight: 700, fontSize: 32 }}>
+                    Welcome back
                   </Title>
-                  <div style={{ color: '#888', marginBottom: 24, textAlign: 'left' }}>
-                    Don’t have an account?{' '}
-                    <Button type="link" style={{ padding: 0, color: '#7c5cff' }} onClick={handleToggle}>
+                  <div style={{ color: '#888', marginBottom: 16 }}>
+                    Don't have an account?{' '}
+                    <Button
+                      type="link"
+                      style={{
+                        padding: 0,
+                        color: '#7c5cff',
+                        boxShadow: 'none',
+                        border: 'none',
+                        background: 'none',
+                        textDecoration: 'none',
+                      }}
+                      onClick={handleToggle}
+                    >
                       Sign up
                     </Button>
                   </div>
-                  <Form layout="vertical" style={{ width: '100%' }} onFinish={onFinish}>
-                    <Form.Item name="email" label={<span style={{ color: '#222' }}>Email</span>} rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}> 
-                      <Input placeholder="you@example.com" style={{ background: '#f6f7fb', color: '#222', border: '1px solid #ddd' }} />
-                    </Form.Item>
-                    <Form.Item name="password" label={<span style={{ color: '#222' }}>Password</span>} rules={[{ required: true, message: 'Please enter your password' }]}> 
-                      <Input.Password placeholder="Password" style={{ background: '#f6f7fb', color: '#222', border: '1px solid #ddd' }} />
-                    </Form.Item>
-                    <Form.Item style={{ marginBottom: 0 }}>
-                      <Button type="primary" htmlType="submit" block loading={loading} style={{ background: '#7c5cff', border: 'none', fontWeight: 600, fontSize: 16, height: 44 }}>
-                        Sign in
-                      </Button>
-                    </Form.Item>
-                  </Form>
-                  <Divider style={{ color: '#888', borderColor: '#eee', margin: '24px 0 16px 0' }}>Or sign in with</Divider>
-                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => message.error('Google sign-in failed')} width="100%" />
-                  </div>
                 </>
               )}
+
+              <Form
+                name={isSignup ? 'signup' : 'login'}
+                onFinish={onFinish}
+                layout="vertical"
+                style={{ width: '100%' }}
+                size="large"
+              >
+                {isSignup && (
+                  <Form.Item
+                    name="name"
+                    label="Full Name"
+                    rules={[{ required: true, message: 'Please input your name!' }]}
+                  >
+                    <Input placeholder="Enter your full name" />
+                  </Form.Item>
+                )}
+
+                <Form.Item
+                  name="email"
+                  label="Email"
+                  rules={[
+                    { required: true, message: 'Please input your email!' },
+                    { type: 'email', message: 'Please enter a valid email!' },
+                  ]}
+                >
+                  <Input placeholder="Enter your email" />
+                </Form.Item>
+
+                <Form.Item
+                  name="password"
+                  label="Password"
+                  rules={[{ required: true, message: 'Please input your password!' }]}
+                >
+                  <Input.Password placeholder="Enter your password" />
+                </Form.Item>
+
+                {isSignup && (
+                  <Form.Item
+                    name="confirmPassword"
+                    label="Confirm Password"
+                    dependencies={['password']}
+                    rules={[
+                      { required: true, message: 'Please confirm your password!' },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || getFieldValue('password') === value) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(new Error('Passwords do not match!'));
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input.Password placeholder="Confirm your password" />
+                  </Form.Item>
+                )}
+
+                {!isSignup && (
+                  <Form.Item>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Form.Item name="remember" valuePropName="checked" noStyle>
+                        <Checkbox>Remember me</Checkbox>
+                      </Form.Item>
+                      <Button type="link" style={{ padding: 0, color: '#7c5cff' }}>
+                        Forgot password?
+                      </Button>
+                    </div>
+                  </Form.Item>
+                )}
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    style={{
+                      width: '100%',
+                      height: 48,
+                      backgroundColor: '#7c5cff',
+                      borderColor: '#7c5cff',
+                      borderRadius: 8,
+                      fontSize: 16,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isSignup ? 'Create Account' : 'Sign In'}
+                  </Button>
+                </Form.Item>
+
+                <Divider style={{ margin: '20px 0', color: '#888' }}>or</Divider>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => message.error('Google sign-in failed')}
+                    useOneTap={false}
+                    theme="outline"
+                    size="large"
+                    width="100%"
+                  />
+                </div>
+              </Form>
             </div>
           </div>
         </div>
-        <style>{`
-          @media (max-width: 900px) {
-            .auth-book-container {
-              flex-direction: column !important;
-              width: 98vw !important;
-              height: auto !important;
-              min-height: 0 !important;
-              max-height: none !important;
-              margin: 24px 0 !important;
-            }
-            .auth-book-image {
-              flex: none !important;
-              width: 100% !important;
-              min-height: 180px !important;
-              height: 220px !important;
-              border-radius: 20px 20px 0 0 !important;
-              padding: 24px !important;
-            }
-            .auth-book-form-panel {
-              flex: none !important;
-              width: 100% !important;
-              min-height: 0 !important;
-              height: auto !important;
-              padding: 0 !important;
-              border-left: none !important;
-              box-shadow: none !important;
-              overflow-y: auto !important;
-            }
-          }
-        `}</style>
       </div>
     </GoogleOAuthProvider>
   );
 };
 
-export default AuthPage; 
+export default AuthPage;
