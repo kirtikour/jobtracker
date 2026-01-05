@@ -1,0 +1,355 @@
+/* Dashboard Animations */
+
+/* Fade in animation for cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+/* Apply animations to dashboard elements */
+.dashboard-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.dashboard-card:nth-child(1) { animation-delay: 0.1s; }
+.dashboard-card:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-card:nth-child(3) { animation-delay: 0.3s; }
+.dashboard-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Tab animations */
+.dashboard-tab {
+  animation: fadeInUp 0.5s ease-out;
+  transition: all 0.3s ease;
+}
+
+.dashboard-tab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(193, 255, 114, 0.1);
+}
+
+.dashboard-tab-content {
+  animation: fadeInRight 0.6s ease-out;
+}
+
+.dashboard-tab-content:nth-child(1) { animation-delay: 0.1s; }
+.dashboard-tab-content:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-tab-content:nth-child(3) { animation-delay: 0.3s; }
+.dashboard-tab-content:nth-child(4) { animation-delay: 0.4s; }
+.dashboard-tab-content:nth-child(5) { animation-delay: 0.5s; }
+.dashboard-tab-content:nth-child(6) { animation-delay: 0.6s; }
+
+/* Leaderboard animations */
+.leaderboard-item {
+  animation: fadeInUp 0.5s ease-out;
+  transition: all 0.3s ease;
+}
+
+.leaderboard-item:hover {
+  transform: translateX(5px);
+  background-color: rgba(193, 255, 114, 0.05);
+}
+
+.leaderboard-rank {
+  animation: bounce 0.6s ease-out;
+}
+
+/* Jobs animations */
+.job-card {
+  animation: fadeInUp 0.6s ease-out;
+  transition: all 0.3s ease;
+}
+
+.job-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.job-filter {
+  animation: fadeInLeft 0.5s ease-out;
+}
+
+/* Job Recommendations animations */
+.recommendation-card {
+  animation: fadeInUp 0.6s ease-out;
+  transition: all 0.3s ease;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(193, 255, 114, 0.1);
+}
+
+.match-score {
+  animation: pulse 2s infinite;
+}
+
+.sidebar-menu {
+  animation: fadeInLeft 0.5s ease-out;
+}
+
+.main-content {
+  animation: fadeInRight 0.5s ease-out;
+}
+
+.header-section {
+  animation: slideInFromTop 0.6s ease-out;
+}
+
+.statistic-card {
+  animation: fadeInUp 0.6s ease-out;
+  transition: all 0.3s ease;
+}
+
+.statistic-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.application-item {
+  animation: fadeInUp 0.5s ease-out;
+  transition: all 0.3s ease;
+}
+
+.application-item:hover {
+  transform: translateX(5px);
+  background-color: rgba(193, 255, 114, 0.05);
+}
+
+.profile-section {
+  animation: fadeInUp 0.7s ease-out;
+}
+
+.cv-upload-area {
+  animation: fadeInUp 0.6s ease-out;
+  transition: all 0.3s ease;
+}
+
+.cv-upload-area:hover {
+  transform: scale(1.02);
+}
+
+.quick-add-button {
+  animation: pulse 2s infinite;
+  transition: all 0.3s ease;
+}
+
+.quick-add-button:hover {
+  animation: none;
+  transform: scale(1.05);
+}
+
+.status-badge {
+  animation: bounce 0.6s ease-out;
+}
+
+.menu-item {
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  transform: translateX(5px);
+  background-color: rgba(193, 255, 114, 0.1);
+}
+
+.avatar-container {
+  animation: fadeInUp 0.8s ease-out;
+  transition: all 0.3s ease;
+}
+
+.avatar-container:hover {
+  transform: scale(1.05);
+}
+
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Responsive animations */
+@media (max-width: 768px) {
+  .dashboard-card {
+    animation: fadeInUp 0.4s ease-out;
+  }
+  
+  .sidebar-menu {
+    animation: slideInFromTop 0.4s ease-out;
+  }
+  
+  .main-content {
+    animation: fadeInUp 0.4s ease-out;
+  }
+}
+
+/* Smooth transitions for all interactive elements */
+.ant-card,
+.ant-button,
+.ant-menu-item,
+.ant-upload,
+.ant-form-item,
+.ant-input,
+.ant-select {
+  transition: all 0.3s ease;
+}
+
+/* Hover effects */
+.ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.ant-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Success animation for saved actions */
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(82, 196, 26, 0.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-animation {
+  animation: successPulse 0.6s ease-out;
+}
+
+/* Error animation */
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.error-animation {
+  animation: errorShake 0.5s ease-out;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Progress bar animation */
+@keyframes progressFill {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--progress-width);
+  }
+}
+
+.progress-animated {
+  animation: progressFill 1s ease-out;
+}
+
+/* Notification animation */
+@keyframes slideInNotification {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notification-animation {
+  animation: slideInNotification 0.5s ease-out;
+} 

@@ -1,357 +1,397 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Typography, message, Checkbox, Divider } from 'antd';
-import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
-const { Title } = Typography;
-
-const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Replace with your Google OAuth client ID
-const jobImage =
-  'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80';
+// Simple notification system
+const showNotification = (message, type = 'info') => {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  `;
+  
+  // Set background color based on type
+  switch (type) {
+    case 'success':
+      notification.style.backgroundColor = '#4caf50';
+      break;
+    case 'error':
+      notification.style.backgroundColor = '#f44336';
+      break;
+    case 'warning':
+      notification.style.backgroundColor = '#ff9800';
+      break;
+    default:
+      notification.style.backgroundColor = '#2196f3';
+  }
+  
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  // Animate in
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 100);
+  
+  // Remove after 4 seconds
+  setTimeout(() => {
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 300);
+  }, 4000);
+};
 
 const AuthPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fade, setFade] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
 
-  // Redirect if already authenticated
+  // Redirect to dashboard when logged in
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!authLoading && isAuthenticated) {
       navigate('/dashboard');
     }
-  }, [isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate]);
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setLoading(true);
-    try {
-      // Here you would typically decode the JWT and create a user session
-      message.success('Google sign-in successful!');
-      // For now, we'll use mock login
-      const result = await login('google@example.com', 'password');
-      if (result.success) {
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      message.error('Google sign-in failed');
-    }
-    setLoading(false);
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const onFinish = async (values) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
+    setError('');
+
+    // Validation
+    if (isSignup) {
+      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+        setError('Please fill in all fields');
+        setLoading(false);
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setLoading(false);
+        return;
+      }
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long');
+        setLoading(false);
+        return;
+      }
+    } else {
+      if (!formData.email || !formData.password) {
+        setError('Please fill in all fields');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       if (isSignup) {
-        // Handle signup
-        const url = 'http://localhost:5000/api/auth/register';
-        const res = await fetch(url, {
+        const res = await fetch('http://localhost:5000/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password
+          }),
         });
-        
+
         const data = await res.json();
-        
+
         if (res.ok) {
-          message.success('Signup successful! Please login.');
-          setIsSignup(false);
+          showNotification('✅ Account created successfully!', 'success');
+          // Auto-login after successful signup
+          const loginResult = await login(formData.email, formData.password);
+          if (loginResult.success) {
+            showNotification('🎉 Welcome! You are now logged in.', 'success');
+            navigate('/dashboard');
+          } else {
+            showNotification('Account created but auto-login failed. Please sign in manually.', 'warning');
+            setIsSignup(false);
+          }
         } else {
-          message.error(data.msg + 'Signup failed');
+          showNotification(data.msg || 'Signup failed. Please check your information.', 'error');
         }
-      } else {
-        // Handle login
-        const result = await login(values.email, values.password);
-        if (result.success) {
-          message.success('Login successful!');
-          navigate('/dashboard');
-        } else {
-          message.error(result.error + 'Login failed');
+              } else {
+          const result = await login(formData.email, formData.password);
+          if (result.success) {
+            showNotification('🎉 Welcome back! You are now logged in.', 'success');
+            navigate('/dashboard');
+          } else {
+            showNotification(result.error || 'Invalid email or password.', 'error');
+          }
         }
-      }
     } catch (err) {
-      message.error('Something went wrong');
-      console.error('Auth error:', err);
+      showNotification('Network error. Please check your connection.', 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleToggle = () => {
-    setFade(true);
-    setTimeout(() => {
-      setIsSignup((prev) => !prev);
-      setFade(false);
-    }, 300);
+  const toggleMode = () => {
+    setIsSignup(!isSignup);
+    setError('');
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
   };
 
   return (
-    <GoogleOAuthProvider clientId={CLIENT_ID}>
-      <div
-        style={{
-          minHeight: '100vh',
-          width: '100vw',
-          background: '#f6f7fb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          padding: '20px',
-        }}
-      >
-        <div
-          className="auth-book-container"
-          style={{
-            width: isSignup ? '600px' : '900px',
-            maxWidth: '100vw',
-            height: 'auto',
-            minHeight: 520,
-            maxHeight: 650,
-            margin: '40px 0',
-            borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-            background: '#fff',
-            display: 'flex',
-            flexDirection: isSignup ? 'column' : 'row',
-            overflow: 'hidden',
-            position: 'relative',
-            boxSizing: 'border-box',
-          }}
-        >
-          {!isSignup && (
-            <div
-              className="auth-book-image"
-              style={{
-                flex: '0 0 50%',
-                background: `url(${jobImage}) center/cover no-repeat`,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                padding: 36,
-                color: '#fff',
-                boxSizing: 'border-box',
-              }}
-            >
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 28,
-                  letterSpacing: 2,
-                  marginBottom: 16,
-                  textShadow: '0 2px 8px #000',
-                }}
-              >
-                Finder
-              </div>
-              <div style={{ flex: 1 }} />
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 500,
-                  marginBottom: 12,
-                  textShadow: '0 2px 8px #000',
-                }}
-              >
-                Find your dream job, track your applications, and get hired!
-              </div>
-              <div
-                style={{
-                  opacity: 0.8,
-                  fontSize: 15,
-                  textShadow: '0 1px 4px #000',
-                }}
-              >
-                Empowering your career journey.
-              </div>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h1 style={styles.title}>
+          {isSignup ? 'Create Account' : 'Sign In'}
+        </h1>
+        <p style={styles.subtitle}>
+          {isSignup 
+            ? 'Join us and start tracking your job applications' 
+            : 'Welcome back! Sign in to your account'
+          }
+        </p>
+
+        <form onSubmit={handleSubmit} style={styles.form}>
+          {isSignup && (
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Full Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter your full name"
+                style={styles.input}
+                required={isSignup}
+              />
             </div>
           )}
 
-          {/* Form Section */}
-          <div
-            className="auth-book-form-panel"
-            style={{
-              flex: 1,
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              padding: '30px 20px',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                maxWidth: 400,
-                margin: '0 auto',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                opacity: fade ? 0 : 1,
-                transform: fade ? (isSignup ? 'translateX(40px)' : 'translateX(-40px)') : 'translateX(0)',
-                transition: 'opacity 0.3s, transform 0.3s',
-              }}
-            >
-              {isSignup ? (
-                <>
-                  <Title level={2} style={{ color: '#222', marginBottom: 8, fontWeight: 700, fontSize: 32 }}>
-                    Create an account
-                  </Title>
-                  <div style={{ color: '#888', marginBottom: 16 }}>
-                    Already have an account?{' '}
-                    <Button
-                      type="link"
-                      style={{
-                        padding: 0,
-                        color: '#7c5cff',
-                        boxShadow: 'none',
-                        border: 'none',
-                        background: 'none',
-                        textDecoration: 'none',
-                      }}
-                      onClick={handleToggle}
-                    >
-                      Sign in
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Title level={2} style={{ color: '#222', marginBottom: 8, fontWeight: 700, fontSize: 32 }}>
-                    Welcome back
-                  </Title>
-                  <div style={{ color: '#888', marginBottom: 16 }}>
-                    Don't have an account?{' '}
-                    <Button
-                      type="link"
-                      style={{
-                        padding: 0,
-                        color: '#7c5cff',
-                        boxShadow: 'none',
-                        border: 'none',
-                        background: 'none',
-                        textDecoration: 'none',
-                      }}
-                      onClick={handleToggle}
-                    >
-                      Sign up
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              <Form
-                name={isSignup ? 'signup' : 'login'}
-                onFinish={onFinish}
-                layout="vertical"
-                style={{ width: '100%' }}
-                size="large"
-              >
-                {isSignup && (
-                  <Form.Item
-                    name="name"
-                    label="Full Name"
-                    rules={[{ required: true, message: 'Please input your name!' }]}
-                  >
-                    <Input placeholder="Enter your full name" />
-                  </Form.Item>
-                )}
-
-                <Form.Item
-                  name="email"
-                  label="Email"
-                  rules={[
-                    { required: true, message: 'Please input your email!' },
-                    { type: 'email', message: 'Please enter a valid email!' },
-                  ]}
-                >
-                  <Input placeholder="Enter your email" />
-                </Form.Item>
-
-                <Form.Item
-                  name="password"
-                  label="Password"
-                  rules={[{ required: true, message: 'Please input your password!' }]}
-                >
-                  <Input.Password placeholder="Enter your password" />
-                </Form.Item>
-
-                {isSignup && (
-                  <Form.Item
-                    name="confirmPassword"
-                    label="Confirm Password"
-                    dependencies={['password']}
-                    rules={[
-                      { required: true, message: 'Please confirm your password!' },
-                      ({ getFieldValue }) => ({
-                        validator(_, value) {
-                          if (!value || getFieldValue('password') === value) {
-                            return Promise.resolve();
-                          }
-                          return Promise.reject(new Error('Passwords do not match!'));
-                        },
-                      }),
-                    ]}
-                  >
-                    <Input.Password placeholder="Confirm your password" />
-                  </Form.Item>
-                )}
-
-                {!isSignup && (
-                  <Form.Item>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Form.Item name="remember" valuePropName="checked" noStyle>
-                        <Checkbox>Remember me</Checkbox>
-                      </Form.Item>
-                      <Button type="link" style={{ padding: 0, color: '#7c5cff' }}>
-                        Forgot password?
-                      </Button>
-                    </div>
-                  </Form.Item>
-                )}
-
-                <Form.Item>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    style={{
-                      width: '100%',
-                      height: 48,
-                      backgroundColor: '#7c5cff',
-                      borderColor: '#7c5cff',
-                      borderRadius: 8,
-                      fontSize: 16,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {isSignup ? 'Create Account' : 'Sign In'}
-                  </Button>
-                </Form.Item>
-
-                <Divider style={{ margin: '20px 0', color: '#888' }}>or</Divider>
-
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => message.error('Google sign-in failed')}
-                    useOneTap={false}
-                    theme="outline"
-                    size="large"
-                    width="100%"
-                  />
-                </div>
-              </Form>
-            </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email Address</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="Enter your email"
+              style={styles.input}
+              required
+            />
           </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Enter your password"
+              style={styles.input}
+              required
+            />
+          </div>
+
+          {isSignup && (
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Confirm Password</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Confirm your password"
+                style={styles.input}
+                required={isSignup}
+              />
+            </div>
+          )}
+
+          {error && (
+            <div style={styles.error}>{error}</div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={styles.submitButton}
+          >
+            {loading 
+              ? (isSignup ? 'Creating Account...' : 'Signing In...') 
+              : (isSignup ? 'Create Account' : 'Sign In')
+            }
+          </button>
+        </form>
+
+        <div style={styles.divider}>
+          <div style={styles.dividerLine}></div>
+          <span style={styles.dividerText}>or</span>
+          <div style={styles.dividerLine}></div>
         </div>
+
+        <button 
+          style={styles.toggleButton}
+          onClick={toggleMode}
+        >
+          {isSignup 
+            ? 'Already have an account? Sign In' 
+            : "Don't have an account? Sign Up"
+          }
+        </button>
+
+        {!isSignup && (
+          <button 
+            style={styles.forgotButton}
+            onClick={() => navigate('/forgot-password')}
+          >
+            Forgot your password?
+          </button>
+        )}
       </div>
-    </GoogleOAuthProvider>
+    </div>
   );
 };
 
+const styles = {
+  container: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#033f47',
+    padding: '20px',
+  },
+  card: {
+    backgroundColor: '#022e38',
+    borderRadius: '8px',
+    padding: '24px',
+    width: '100%',
+    maxWidth: '420px',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+    textAlign: 'center',
+    border: '1px solid #04454f',
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: '700',
+    marginBottom: '8px',
+    color: '#c1ff72',
+  },
+  subtitle: {
+    fontSize: '14px',
+    color: '#d7f5e7',
+    marginBottom: '32px',
+    lineHeight: '1.5',
+  },
+  form: {
+    textAlign: 'left',
+  },
+  inputGroup: {
+    marginBottom: '20px',
+  },
+  label: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '600',
+    marginBottom: '4px',
+    color: '#c1ff72',
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    border: '1px solid #04454f',
+    borderRadius: '8px',
+    fontSize: '16px',
+    boxSizing: 'border-box',
+    backgroundColor: '#033f47',
+    color: '#d7f5e7',
+    transition: 'border-color 0.3s ease',
+  },
+  error: {
+    color: '#ff6b6b',
+    fontSize: '14px',
+    marginBottom: '16px',
+    padding: '8px 12px',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: '8px',
+    border: '1px solid rgba(255, 107, 107, 0.3)',
+  },
+  submitButton: {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#c1ff72',
+    color: '#033f47',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginBottom: '24px',
+    transition: 'all 0.3s ease',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '5px 0',
+    gap: '16px',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '2px',
+    backgroundColor: '#04454f',
+  },
+  dividerText: {
+    color: '#8ab7b0',
+    fontSize: '14px',
+    whiteSpace: 'nowrap',
+  },
+  toggleButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#c1ff72',
+    fontSize: '14px',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    marginBottom: '16px',
+    fontWeight: '500',
+  },
+  forgotButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#8ab7b0',
+    fontSize: '14px',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+  },
+};
+
 export default AuthPage;
+

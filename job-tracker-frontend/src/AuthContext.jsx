@@ -15,67 +15,75 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Mock user data - replace with actual API calls
-  const mockUser = {
-    id: 1,
-    name: 'Kirti Kour',
-    email: 'kirtikour.bscsf22@iba-suk.edu.pk',
-    phone: '+92 123 456 7890',
-    address: 'Sukkur, Pakistan',
-    avatar: null,
-    skills: ['React', 'JavaScript', 'Node.js', 'CSS', 'HTML', 'UI/UX Design'],
-    applications: [
-      {
-        id: 1,
-        company: 'Haier',
-        position: 'INTERNSHIP',
-        status: 'Pending Test',
-        date: 'Jul 16, 2025',
-        logo: null
-      },
-      {
-        id: 2,
-        company: 'Google',
-        position: 'Frontend Developer',
-        status: 'Interview',
-        date: 'Jul 10, 2025',
-        logo: null
-      },
-      {
-        id: 3,
-        company: 'Microsoft',
-        position: 'Software Engineer',
-        status: 'Applied',
-        date: 'Jul 5, 2025',
-        logo: null
-      }
-    ]
-  };
-
+  // Fetch user on page refresh using stored token
   useEffect(() => {
-    // Check if user is logged in (check localStorage, token, etc.)
     const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, []);
 
+    const fetchUser = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setUser(data.user);
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+      }
+
+      setLoading(false);
+    };
+
+    // Only fetch if we haven't already loaded
+    if (loading) {
+      fetchUser();
+    }
+  }, [loading]);
+
+  // Login using backend API
   const login = async (email, password) => {
     try {
-      // Mock login - replace with actual API call
-      if (email && password) {
-        localStorage.setItem('authToken', 'mock-token');
-        localStorage.setItem('userData', JSON.stringify(mockUser));
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        return { success: true };
+      console.log('Login attempt for:', email);
+      
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      console.log('Login response status:', res.status);
+      const data = await res.json();
+      console.log('Login response data:', data);
+
+      if (!res.ok) {
+        console.log('Login failed:', data.msg);
+        return { success: false, error: data.msg || 'Invalid credentials' };
       }
-      return { success: false, error: 'Invalid credentials' };
+
+      // Save token & user
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('userData', JSON.stringify(data.user));
+      setUser(data.user);
+      setIsAuthenticated(true);
+
+      console.log('Login successful, token saved:', data.token);
+      return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
       return { success: false, error: error.message };
     }
   };
@@ -99,12 +107,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    updateUser
+    updateUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

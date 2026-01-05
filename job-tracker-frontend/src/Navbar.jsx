@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Menu, Input, Button, Avatar, Layout, Dropdown, Space } from 'antd';
-import { SearchOutlined, UserOutlined, LogoutOutlined, DashboardOutlined, DownOutlined } from '@ant-design/icons';
+import { Menu, Input, Button, Avatar, Layout, Dropdown, Space, Modal } from 'antd';
+import { SearchOutlined, UserOutlined, LogoutOutlined, DashboardOutlined, DownOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import logo from './assets/logo.png';
+import { useTheme } from './ThemeContext';
+
+import './SidebarMenu.css';
 
 const { Header } = Layout;
 
@@ -11,9 +13,11 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, toggleTheme, isDarkMode } = useTheme();
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   const handleMenuClick = (key) => {
-    switch(key) {
+    switch (key) {
       case 'home':
         navigate('/');
         break;
@@ -23,8 +27,8 @@ const Navbar = () => {
       case 'companies':
         navigate('/companies');
         break;
-      case 'resources':
-        navigate('/resources');
+      case 'Preparation':
+        navigate('/Preparation');
         break;
       case 'dashboard':
         navigate('/dashboard');
@@ -35,8 +39,17 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
+    setLogoutModalVisible(true);
+  };
+
+  const confirmLogout = () => {
     logout();
     navigate('/');
+    setLogoutModalVisible(false);
+  };
+
+  const cancelLogout = () => {
+    setLogoutModalVisible(false);
   };
 
   const userMenuItems = [
@@ -68,7 +81,7 @@ const Navbar = () => {
     if (path === '/') return ['home'];
     if (path === '/jobs') return ['jobs'];
     if (path === '/companies') return ['companies'];
-    if (path === '/resources') return ['resources'];
+    if (path === '/Preparation') return ['Preparation'];
     if (path === '/dashboard') return ['dashboard'];
     return [];
   };
@@ -82,108 +95,214 @@ const Navbar = () => {
     return names[0].charAt(0);
   };
 
-  return (
-    <Header style={{
-      backgroundColor: '#033f47',
-      display: 'flex',
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 30px'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <img 
-          src={logo} 
-          alt="Logo" 
-          style={{ width: 65, cursor: 'pointer' }}
-          onClick={() => navigate('/')}
-        />
-        <Menu
-          mode="horizontal"
-          selectedKeys={getSelectedKey()}
-          onClick={({ key }) => handleMenuClick(key)}
-          style={{
-            background: 'transparent',
-            color: 'white',
-            fontWeight: 500,
-            border: 'none'
-          }}
-          items={[
-            { key: 'home', label: 'Home' },
-            { key: 'jobs', label: 'Jobs' },
-            { key: 'companies', label: 'Companies' },
-            { key: 'resources', label: 'Resources' },
-            ...(isAuthenticated ? [{ key: 'dashboard', label: 'Dashboard' }] : [])
-          ]}
-        />
-      </div>
+  const navStyles = `
+    .ant-menu-horizontal {
+      line-height: 46px;
+      border-bottom: none !important;
+    }
+    .ant-menu-item {
+      color: ${theme.colors.accent} !important;
+      font-weight: 600 !important;
+    }
+    .ant-menu-item::after {
+      border-bottom: none !important;
+      transition: none !important;
+    }
+    .ant-menu-item-selected::after {
+      border-bottom: none !important;
+    }
+    .ant-menu-item-selected {
+      color: ${theme.colors.accent} !important;
+    }
+    .ant-menu-item:hover {
+      color: ${theme.colors.accent} !important;
+    }
+  `;
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <Input
-          placeholder="Search"
-          prefix={<SearchOutlined />}
-          style={{ width: 200, borderRadius: 8, background: '#f1fff0' }}
-        />
-        
-        {isAuthenticated ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ color: '#c1ff72', fontWeight: 500 }}>
-              Welcome, {user?.name?.split(' ')[0]}
-            </span>
-            <Dropdown
-              menu={{ items: userMenuItems }}
-              trigger={['click']}
-              placement="bottomRight"
-            >
-              <Space style={{ cursor: 'pointer' }}>
-                <Avatar 
-                  style={{ 
-                    backgroundColor: '#c1ff72', 
-                    color: '#033f47',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {getUserInitials(user?.name)}
-                </Avatar>
-                <DownOutlined style={{ color: '#c1ff72', fontSize: 12 }} />
-              </Space>
-            </Dropdown>
+  React.useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = navStyles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, [navStyles]);
+
+  return (
+    <>
+      <Header style={{
+        backgroundColor: theme.colors.primaryBg,
+        display: 'flex',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 30px',
+        borderBottom: `1px solid ${theme.colors.border}`,
+        transition: 'all 0.3s ease'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexGrow: 1 }}>
+          <div
+            style={{
+              fontSize: '28px',
+              fontWeight: '900',
+              cursor: 'pointer',
+              letterSpacing: '2.5px',
+              color: theme.colors.accent,
+              textShadow: isDarkMode ? `0 0 18px ${theme.colors.accent}40` : 'none'
+            }}
+            onClick={() => navigate('/')}
+          >
+            HIRIX
           </div>
-        ) : (
-          <>
-            <Button 
+          <div style={{ flexGrow: 1 }}>
+            <Menu
+              mode="horizontal"
+              overflowedIndicator={false}
+              selectedKeys={getSelectedKey()}
+              onClick={({ key }) => handleMenuClick(key)}
               style={{
-                borderRadius: 20,
-                padding: '0 20px',
-                backgroundColor: '#c1ff72',
-                color: '#033f47',
+                background: 'transparent',
+                color: theme.colors.accent,
+                fontWeight: 500,
                 border: 'none',
-                fontWeight: 600
               }}
-              onClick={() => navigate('/post-job')}
-            >
-              Post a Job
-            </Button>
-            <Button 
-              type="primary"
-              style={{
-                borderRadius: 20,
-                padding: '0 20px',
-                backgroundColor: 'transparent',
-                color: '#c1ff72',
-                border: '1px solid #c1ff72',
-                fontWeight: 600
-              }}
-              onClick={() => navigate('/auth')}
-            >
-              Sign In
-            </Button>
-          </>
-        )}
-      </div>
-    </Header>
+              items={[
+                { key: 'home', label: 'Home' },
+                { key: 'jobs', label: 'Jobs' },
+                { key: 'companies', label: 'Companies' },
+                { key: 'Preparation', label: 'Preparation' },
+                ...(isAuthenticated ? [{ key: 'dashboard', label: 'Dashboard' }] : [])
+              ]}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Button
+            type="text"
+            icon={isDarkMode ? <BulbFilled /> : <BulbOutlined />}
+            onClick={toggleTheme}
+            style={{
+              color: theme.colors.accent,
+              fontSize: '18px'
+            }}
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          />
+
+          <Input
+            placeholder="Search"
+            prefix={<SearchOutlined />}
+            style={{
+              width: 200,
+              borderRadius: 8,
+              background: isDarkMode ? '#f1fff0' : '#ffffff',
+              border: `1px solid ${theme.colors.border}`
+            }}
+          />
+
+          {isAuthenticated ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ color: theme.colors.accent, fontWeight: 500 }}>
+                Welcome, {user?.name?.split(' ')[0]}
+              </span>
+              <Dropdown
+                menu={{ items: userMenuItems }}
+                trigger={['click']}
+                placement="bottomRight"
+              >
+                <Space style={{ cursor: 'pointer' }}>
+                  <Avatar
+                    style={{
+                      backgroundColor: theme.colors.accent,
+                      color: theme.colors.primaryBg,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {getUserInitials(user?.name)}
+                  </Avatar>
+                  <DownOutlined style={{ color: theme.colors.accent, fontSize: 12 }} />
+                </Space>
+              </Dropdown>
+            </div>
+          ) : (
+            <>
+              <Button
+                style={{
+                  borderRadius: 20,
+                  padding: '0 20px',
+                  backgroundColor: theme.colors.accent,
+                  color: theme.colors.primaryBg,
+                  border: 'none',
+                  fontWeight: 600
+                }}
+                onClick={() => navigate('/post-job')}
+              >
+                Post a Job
+              </Button>
+              <Button
+                type="primary"
+                style={{
+                  borderRadius: 20,
+                  padding: '0 20px',
+                  backgroundColor: 'transparent',
+                  color: theme.colors.accent,
+                  border: `1px solid ${theme.colors.accent}`,
+                  fontWeight: 600
+                }}
+                onClick={() => navigate('/auth')}
+              >
+                Sign In
+              </Button>
+            </>
+          )}
+        </div>
+      </Header>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        title="Confirm Logout"
+        open={logoutModalVisible}
+        onOk={confirmLogout}
+        onCancel={cancelLogout}
+        okText="Yes, Logout"
+        cancelText="Cancel"
+        okButtonProps={{
+          style: {
+            backgroundColor: theme.colors.accent,
+            color: theme.colors.primaryBg,
+            border: 'none',
+            fontWeight: 'bold'
+          }
+        }}
+        cancelButtonProps={{
+          style: {
+            backgroundColor: theme.colors.tertiaryBg,
+            color: theme.colors.textPrimary,
+            border: `1px solid ${theme.colors.border}`
+          }
+        }}
+        styles={{
+          content: {
+            backgroundColor: theme.colors.cardBg,
+            border: `1px solid ${theme.colors.border}`
+          },
+          header: {
+            backgroundColor: theme.colors.cardBg,
+            borderBottom: `1px solid ${theme.colors.border}`
+          },
+          mask: {
+            backgroundColor: theme.colors.modalOverlay
+          }
+        }}
+      >
+        <p style={{ color: theme.colors.textPrimary }}>Are you sure you want to logout?</p>
+        <p style={{ color: theme.colors.textSecondary, fontSize: '14px' }}>
+          You will be redirected to the home page.
+        </p>
+      </Modal>
+    </>
   );
 };
 
